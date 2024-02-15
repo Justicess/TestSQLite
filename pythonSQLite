@@ -1,0 +1,139 @@
+import sqlite3
+import os
+ 
+conn = sqlite3.connect(r"C:\Users\Justas\Desktop\Finances.db")
+c = conn.cursor()
+
+#create_table = """
+#CREATE TABLE Finances (
+#    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+#    type TEXT,
+#    amount FLOAT,
+#    category TEXT
+#)
+#"""
+#with conn:
+#    c.execute(create_table) 
+
+insert_query ="""
+INSERT INTO Finances (type, amount, category)
+VALUES (?, ?, ?)
+"""
+get_query_all ="""
+SELECT * FROM Finances
+""" 
+get_query ="""
+SELECT amount FROM Finances
+"""
+select_query_incomes ="""
+SELECT * FROM Finances WHERE amount >= 0"""
+
+select_query_expenses ="""
+SELECT * FROM Finances WHERE amount < 0"""
+
+delete_query ="""
+DELETE FROM Finances WHERE id = ?
+""" 
+update_query = """
+UPDATE Finances SET type = ?, amount = ?, category = ? WHERE id = ?"""
+
+# Funkcija prideti i duomenu baze
+def values_to_db(inc_exp, amount, category):
+    values_to_add = (inc_exp,amount, category)
+    with conn:
+        c.execute(insert_query,values_to_add)
+    conn.commit()
+    #conn.close()
+
+# funkcija gauti duomenis is DB
+def get_values_from_db(query):
+    with conn:
+        c.execute(query)
+        data_from_db = c.fetchall()
+    #conn.commit()
+    #conn.close()
+    return data_from_db
+
+# Funkcija pasirinkti teigiama, neigiama suma ir kategorija. Tada kvieciama values_to_db()
+def income_expenses(inc_exp):
+    if inc_exp == 1:
+       amount = float(input("Amount: "))
+       category = input("Category: ")
+       values_to_db(inc_exp, amount, category)
+    else:
+      amount = (float(input("Amount: ")) * - 1)
+      category = input("Category: ")
+      values_to_db(inc_exp, amount, category)
+
+#Funkcija gauti balance
+def get_balance():
+    balance = get_values_from_db(get_query)
+    balance = sum(map(sum, balance))
+    print(balance)
+
+#Funkcija gauti incomes arba expenses
+def get_all_income_expenses(query):
+    income_db = get_values_from_db(query)
+    for values in income_db:
+        print(f'Id:{values[0]}  Type:{values[1]}  Amount:{values[2]}  Category:{values[3]}')
+
+#Funkcija trinti incomes arba expenses
+def delete_inc_exp(query):
+    get_all_income_expenses(get_query_all)
+    user_select = int(input("Write id: "))
+    with conn:
+        c.execute(query,(user_select,))
+    conn.commit()
+    #conn.close()
+
+def update_inc_exp(query):
+    get_all_income_expenses(get_query_all)
+    user_select = int(input("Write income/expense id : "))
+    user_update_type = int(input("To change type you need write a number: "))
+    user_amount = float(input("Write amount: "))
+    user_category = input("Write new category: ")
+    with conn:
+        c.execute(query,(user_update_type,user_amount,user_category,user_select ))
+    conn.commit()
+    
+# Pagrindine programa 
+run_app = True
+
+while run_app:
+
+ def is_number(value):
+     try:
+         int(value)
+         return int(value)
+     except ValueError:
+         print("Not a number")
+         return False
+
+ print("Choose from menu via number: ")
+ list_menu = ["1: Income","2: Expenses","3: Get balance","4: All income","5: All expense","6: Delete income/expenses","7: Update income/expense"]
+ for menu in list_menu:
+     print(menu)
+
+ user_input = is_number(input(": "))
+ print(type(user_input))
+ if user_input == 1 or user_input == 2:
+     income_expenses(user_input)
+ elif user_input == 3:
+     get_balance()
+ elif user_input == 4:
+     get_all_income_expenses(select_query_incomes)
+ elif user_input == 5:
+    get_all_income_expenses(select_query_expenses)
+ elif user_input == 6:
+       delete_inc_exp(delete_query)
+ elif user_input == 7:
+     update_inc_exp(update_query)
+ else:
+    print("Try again! ")
+    exit_app = input("Do you want to continue: Y/N").upper()
+    os.system('cls')
+    if exit_app == "N":
+       conn.close()
+       run_app=False
+       
+# Duomenu lentele uzpildyta. Nera apsaugu, nespejau 
